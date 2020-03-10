@@ -213,4 +213,4 @@ function displayScreen() {
 
 // set an interval to keep running. The callback function (getReadings)P
 // will clear the interval when it gets good readings:
-readingInterval = setInterval(displayScreen, 1000);
+readingInterval = setInterval(displayScreen, 300000);
