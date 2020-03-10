@@ -34,6 +34,21 @@ let sensor = require("node-dht-sensor");
 let device = {};          // object for device characteristics
 let readingInterval;      // interval to do readings (initialized at bottom)
 
+
+// Now for Screen setup information
+const i2c = require('i2c-bus');
+const i2cBus = i2c.openSync(1);
+const screen = require('oled-i2c-bus');
+//Setting the font that my screen uses
+const font = require('oled-font-5x7');
+let opts = {
+    width: 128,     // screen width
+    height: 64,    // screen height
+    address: 0x3C  // I2C address for my model
+ };
+// make an instance of the OLED library
+let oled = new screen(i2cBus, opts);
+
 //From Tom's Code: in order to send my requests I need
 //1. To make sure it's communicating over the proper TLS (HTTPS is secure)
 const https = require('https');
@@ -120,12 +135,12 @@ function sensorRead() {
     // I used GPIO4 for my sensor reading (technically pin 7, but again, this was the repo syntax) because my sensor communicates over a 1-wire interface   
     sensor.read(11, 4, function (err, temperature, humidity) {
         // read the values of each device sensor, and establish them as numbers precise to two decimal points
-        // device.tempSensorVal = Number(temperature);
-        // device.humiditySensorVal = Number(humidity);
-        if(!err){
-            console.log(temperature);
-            console.log(humidity);
-        }
+        device.tempSensorVal = Number(temperature);
+        device.humiditySensorVal = Number(humidity);
+        // if(!err){
+        //     console.log(temperature);
+        //     console.log(humidity);
+        // }
     });
 
     // Callback: If the feedback from the device sensors are numbers...
@@ -134,11 +149,12 @@ function sensorRead() {
         console.log(device);
         //...and send to server as the device json object:
         sendToServer(JSON.stringify(device));
-    } else {
-        console.log("Not working");
-        
-        console.log(device.tempSensorVal, device.humiditySensorVal);
-    }
+    // } else {
+    //     console.log(device.tempSensorVal, device.humiditySensorVal);
+    //     console.log(device);
+    //     //...and send to server as the device json object:
+    //     sendToServer(JSON.stringify(device));
+    // }
     
 
     // From Tom's code:
@@ -178,7 +194,23 @@ function sensorRead() {
 
     }
 }
+}
+function displayScreen() {
+    //"Reset" display screen
+    oled.clearDisplay();
+    oled.setCursor(0, 0);
+    // Adapted from Tom's code, to send humidtiy and temperature variables over
+    let numTemp = String(device.tempSensorVal); 
+    let numHum = String(device.humiditySensorVal);
+    // Concatinate string to send for screen to represent
+    oled.writeString(font, 1,  numTemp + '°C' + "\n" + numHum + '%', 1, true);
+ }
+
+ function doBoth(){
+    sensorRead();
+    displayScreen();
+ }
 
 // set an interval to keep running. The callback function (getReadings)P
 // will clear the interval when it gets good readings:
-readingInterval = setInterval(sensorRead, 1000);
+readingInterval = setInterval(doBoth, 1000);
